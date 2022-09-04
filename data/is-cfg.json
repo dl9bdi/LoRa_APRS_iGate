@@ -52,10 +52,12 @@
 		"coding_rate4": 5,
 		"tx_enable": false
 	},
+
 	"telemetry": {
 		"voltage_pin": 35,
 		"telemetry_beacon_time": 15
 	},
+
 	"display": {
 		"always_on": false,
 		"timeout": 10,

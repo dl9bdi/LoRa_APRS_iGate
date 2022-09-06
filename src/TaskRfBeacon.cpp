@@ -31,6 +31,7 @@ bool RfBeaconTask::loop(System &system) {
   double vf=v/5.0/4096.0*3.3;
   //f=v/3;
   system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(), "Wert an Port 35: %f Volt", vf);
+  //int txstatus = TaskRadiolib.startTX("Ein Text aus rfBeacon");
   /*
   LoRa.beginPacket();
     // Header:

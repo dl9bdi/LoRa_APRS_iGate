@@ -95,11 +95,10 @@ public:
 
   class Telemetry {
   public:
-    Telemetry() : voltagePin(0), telemetry_beacon_time(0) {
+    Telemetry() : active(true), voltagePin(0) {
     }
-
-    int    voltagePin;
-    int    telemetry_beacon_time;
+    bool active;
+    int     voltagePin;
   };
 
   class Display {

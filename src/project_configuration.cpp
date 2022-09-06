@@ -65,8 +65,8 @@ void ProjectConfigurationManagement::readProjectConfiguration(DynamicJsonDocumen
   conf.lora.codingRate4     = data["lora"]["coding_rate4"] | 5;
   conf.lora.tx_enable       = data["lora"]["tx_enable"] | true;
 
-  conf.telemetry.voltagePin           = data["telemetry"]["voltage_pin"] | 0;
-  conf.telemetry.telemetry_beacon_time = data["telemetry"]["telemetry_beacon_time"] | 0;
+  conf.telemetry.voltagePin = data["telemetry"]["voltage_pin"] | 0;
+  conf.telemetry.active     = data["telemetry"]["telemetry_beacon_time"] | true;
 
   conf.display.alwaysOn     = data["display"]["always_on"] | true;
   conf.display.timeout      = data["display"]["timeout"] | 10;
@@ -153,10 +153,9 @@ void ProjectConfigurationManagement::writeProjectConfiguration(Configuration &co
   data["lora"]["signal_bandwidth"]        = conf.lora.signalBandwidth;
   data["lora"]["coding_rate4"]            = conf.lora.codingRate4;
   data["lora"]["tx_enable"]               = conf.lora.tx_enable;
+  data["telemetry"]["active"]             = conf.telemetry.active;
   data["telemetry"]["voltage_pin"]        = conf.telemetry.voltagePin;
-  data["telemetry"]["telemtry_beacon_time"] = conf.telemetry.telemetry_beacon_time;
 
- 
  
   data["display"]["always_on"]            = conf.display.alwaysOn;
   data["display"]["timeout"]              = conf.display.timeout;

@@ -120,6 +120,13 @@ bool BeaconTask::sendBeacon(System &system) {
     _toModem.addElement(_beaconMsg);
   }
 
+  if (system.getUserConfig()->telemetry.active) {
+    system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(), "Vor _toModem in Beacontask");
+    _beaconMsg->getBody()->setData("Etwas Text von mir");
+    _toModem.addElement(_beaconMsg);
+  }
+
+
   system.getDisplay().addFrame(std::shared_ptr<DisplayFrame>(new TextFrame("BEACON", _beaconMsg->toString())));
 
   return true;

@@ -50,12 +50,12 @@
 		"spreading_factor": 12,
 		"signal_bandwidth": 125000,
 		"coding_rate4": 5,
-		"tx_enable": false
+		"tx_enable": true
 	},
 
 	"telemetry": {
-		"voltage_pin": 35,
-		"telemetry_beacon_time": 15
+		"active": true,
+		"voltage_pin": 35
 	},
 
 	"display": {

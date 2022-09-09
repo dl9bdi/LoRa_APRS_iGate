@@ -7,6 +7,7 @@
 #include "TaskBeacon.h"
 #include "project_configuration.h"
 
+
 BeaconTask::BeaconTask(TaskQueue<std::shared_ptr<APRSMessage>> &toModem, TaskQueue<std::shared_ptr<APRSMessage>> &toAprsIs) : Task(TASK_BEACON, TaskBeacon), _toModem(toModem), _toAprsIs(toAprsIs), _ss(1), _useGps(false) {
 }
 
@@ -16,6 +17,8 @@ BeaconTask::~BeaconTask() {
 OneButton BeaconTask::_userButton;
 bool      BeaconTask::_send_update;
 uint      BeaconTask::_instances;
+
+
 
 void BeaconTask::pushButton() {
   _send_update = true;
@@ -29,7 +32,8 @@ bool BeaconTask::setup(System &system) {
   }
 
   _useGps = system.getUserConfig()->beacon.use_gps;
-
+  
+  
   if (_useGps) {
     if (system.getBoardConfig()->GpsRx != 0) {
       _ss.begin(9600, SERIAL_8N1, system.getBoardConfig()->GpsTx, system.getBoardConfig()->GpsRx);
@@ -96,6 +100,24 @@ String create_long_aprs(double lng) {
   return lng_str;
 }
 
+String getTelemetryData(System &system){
+  char _telemetryData[40]; 
+  system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "Telemetry", "Bin in Telemetry");
+  int port = system.getUserConfig()->telemetry.voltagePin;
+  system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "Telemetry", "Messport für Spannung aus Config ist %d", port);
+  int v=0;
+  for (int i=0;i<5;i++){
+    v+=analogRead(port);
+  }
+  double vf=v/5.0/4096.0*3.3;
+  //_telemetryData= ("Wert an Port %d: %f Volt", port, vf);
+  sprintf(_telemetryData, "U: %fV ond IO %d", vf, port);
+  system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "Telemetry", "Wert an Port %d: %f Volt", port, vf);
+  
+  return (String) _telemetryData;  
+}
+
+
 bool BeaconTask::sendBeacon(System &system) {
   double lat = system.getUserConfig()->beacon.positionLatitude;
   double lng = system.getUserConfig()->beacon.positionLongitude;
@@ -122,6 +144,8 @@ bool BeaconTask::sendBeacon(System &system) {
 
   if (system.getUserConfig()->telemetry.active) {
     system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(), "Vor _toModem in Beacontask");
+    system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(), "Telemetriedaten: %s", getTelemetryData(system));
+  
     _beaconMsg->getBody()->setData("Etwas Text von mir");
     _toModem.addElement(_beaconMsg);
   }
@@ -131,3 +155,4 @@ bool BeaconTask::sendBeacon(System &system) {
 
   return true;
 }
+

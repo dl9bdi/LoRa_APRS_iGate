@@ -8,6 +8,7 @@
 #include <TaskMQTT.h>
 #include <TaskManager.h>
 
+
 class BeaconTask : public Task {
 public:
   BeaconTask(TaskQueue<std::shared_ptr<APRSMessage>> &toModem, TaskQueue<std::shared_ptr<APRSMessage>> &toAprsIs);
@@ -32,6 +33,7 @@ private:
   static OneButton _userButton;
   static bool      _send_update;
   static void      pushButton();
+
 };
 
 #endif

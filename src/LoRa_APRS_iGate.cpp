@@ -20,7 +20,7 @@
 #include "TaskRouter.h"
 #include "TaskWifi.h"
 #include "project_configuration.h"
-#include "TaskRfBeacon.h"
+
 
 #define VERSION     "22.20.0"
 #define MODULE_NAME "Main"
@@ -36,6 +36,7 @@ TaskQueue<std::shared_ptr<APRSMessage>> toMQTT;
 System        LoRaSystem;
 Configuration userConfig;
 
+
 DisplayTask displayTask;
 // ModemTask   modemTask(fromModem, toModem);
 RadiolibTask modemTask(fromModem, toModem);
@@ -43,7 +44,6 @@ EthTask      ethTask;
 WifiTask     wifiTask;
 OTATask      otaTask;
 NTPTask      ntpTask;
-RfBeaconTask rfbeaconTask;
 FTPTask      ftpTask;
 MQTTTask     mqttTask(toMQTT);
 AprsIsTask   aprsIsTask(toAprsIs);
@@ -112,7 +112,6 @@ void setup() {
   LoRaSystem.getTaskManager().addTask(&modemTask);
   LoRaSystem.getTaskManager().addTask(&routerTask);
   LoRaSystem.getTaskManager().addTask(&beaconTask);
-  LoRaSystem.getTaskManager().addTask(&rfbeaconTask); 
 
   bool tcpip = false;
 

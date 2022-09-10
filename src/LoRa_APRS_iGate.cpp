@@ -20,6 +20,7 @@
 #include "TaskRouter.h"
 #include "TaskWifi.h"
 #include "project_configuration.h"
+#include "DHT.h"
 
 
 #define VERSION     "22.20.0"
@@ -36,7 +37,6 @@ TaskQueue<std::shared_ptr<APRSMessage>> toMQTT;
 System        LoRaSystem;
 Configuration userConfig;
 
-
 DisplayTask displayTask;
 // ModemTask   modemTask(fromModem, toModem);
 RadiolibTask modemTask(fromModem, toModem);
@@ -50,6 +50,9 @@ AprsIsTask   aprsIsTask(toAprsIs);
 RouterTask   routerTask(fromModem, toModem, toAprsIs, toMQTT);
 BeaconTask   beaconTask(toModem, toAprsIs);
 
+
+
+
 void setup() {
   Serial.begin(115200);
   LoRaSystem.getLogger().setSerial(&Serial);
@@ -58,6 +61,7 @@ void setup() {
   LoRaSystem.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, MODULE_NAME, "LoRa APRS iGate by OE5BPA (Peter Buchegger)");
   LoRaSystem.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, MODULE_NAME, "Version: %s", VERSION);
 
+ 
   std::list<BoardConfig const *> boardConfigs;
   boardConfigs.push_back(&TTGO_LORA32_V1);
   boardConfigs.push_back(&TTGO_LORA32_V2);
@@ -161,6 +165,11 @@ void setup() {
     pinMode(userConfig.display.overwritePin, INPUT);
     pinMode(userConfig.display.overwritePin, INPUT_PULLUP);
   }
+
+  //start dht22 measurement
+    //get IO port to read a dht22 from configuration
+  //int dhtPort = system.getUserConfig()->telemetry.dht22_pin;
+
 
   delay(5000);
   LoRaSystem.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, MODULE_NAME, "setup done...");

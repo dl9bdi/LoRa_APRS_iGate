@@ -1,5 +1,5 @@
 {
-	"callsign": "DL9BDI-10",
+	"callsign": "DL9BDI-8",
 	"network": {
 		"DHCP": true,
 		"static": {
@@ -54,9 +54,11 @@
 	},
 
 	"telemetry": {
-		"active": true,
+		"active": true,  		
 		"voltage_pin": 35,
-		"voltage_scaling": 15
+		"voltage_scaling": 15,
+		"dht22_pin": 25
+
 	},
 
 	"display": {

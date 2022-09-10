@@ -66,8 +66,9 @@ void ProjectConfigurationManagement::readProjectConfiguration(DynamicJsonDocumen
   conf.lora.tx_enable       = data["lora"]["tx_enable"] | true;
 
   conf.telemetry.active     = data["telemetry"]["active"] | true;
-  conf.telemetry.voltage_pin= data["telemetry"]["voltage_pin"] | 0;
+  conf.telemetry.voltage_pin= data["telemetry"]["voltage_pin"] | 35;
   conf.telemetry.active     = data["telemetry"]["voltage_scaling"] | 15;
+  conf.telemetry.dht22_pin  = data["telemetry"]["dht22_pin"] | 34;
 
   conf.display.alwaysOn     = data["display"]["always_on"] | true;
   conf.display.timeout      = data["display"]["timeout"] | 10;
@@ -157,7 +158,7 @@ void ProjectConfigurationManagement::writeProjectConfiguration(Configuration &co
   data["telemetry"]["active"]             = conf.telemetry.active;
   data["telemetry"]["voltage_pin"]        = conf.telemetry.voltage_pin;
   data["telemetry"]["voltage_scaling"]    = conf.telemetry.voltage_scaling;
-
+  data["telemetry"]["dht22_pin"]          = conf.telemetry.dht22_pin;
  
   data["display"]["always_on"]            = conf.display.alwaysOn;
   data["display"]["timeout"]              = conf.display.timeout;

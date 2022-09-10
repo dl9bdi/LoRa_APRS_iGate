@@ -100,21 +100,34 @@ String create_long_aprs(double lng) {
   return lng_str;
 }
 
+/*
+  Collect and format measurements connected to IO Ports at the
+  local board and format it into a string to be sent out as telemetry data.
+  These can be e.g. direct voltage measurements from 0-3.3V, connected 
+  temperature sensors, etc. 
+*/
+
 String getTelemetryData(System &system){
-  char _telemetryData[40]; 
-  system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "Telemetry", "Bin in Telemetry");
-  int port = system.getUserConfig()->telemetry.voltagePin;
-  system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "Telemetry", "Messport für Spannung aus Config ist %d", port);
+  char outBuffer[40]; 
+  //get IO port to read a direct voltage from configuration
+  int voltagePort = system.getUserConfig()->telemetry.voltagePin;
+
+  //get voltage scaling faktor. This is used for output formatting and gives the real world voltage value of an IO pin input of 3.3V 
+  float voltageSkaling = system.getUserConfig()->telemetry.voltageScaling;
+
+  //do an average over some measuremets to reduce jitter
   int v=0;
   for (int i=0;i<5;i++){
-    v+=analogRead(port);
+    v+=analogRead(voltagePort);
   }
-  double vf=v/5.0/4096.0*3.3;
-  //_telemetryData= ("Wert an Port %d: %f Volt", port, vf);
-  sprintf(_telemetryData, "U: %fV ond IO %d", vf, port);
-  system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "Telemetry", "Wert an Port %d: %f Volt", port, vf);
+  //scale output to realword voltage value
+  double vf=v/5.0/4096.0*voltageSkaling;
   
-  return (String) _telemetryData;  
+  //format for proper readibility
+  sprintf(outBuffer, "U: %3.1fV on IO %d", vf, voltagePort);
+  system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "Telemetriedaten: %s", outBuffer);
+  
+  return (String) outBuffer;  
 }
 
 
@@ -131,7 +144,7 @@ bool BeaconTask::sendBeacon(System &system) {
     }
   }
   _beaconMsg->getBody()->setData(String("=") + create_lat_aprs(lat) + "L" + create_long_aprs(lng) + "&" + system.getUserConfig()->beacon.message);
-
+ 
   system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(), "[%s] %s", timeString().c_str(), _beaconMsg->encode().c_str());
 
   if (system.getUserConfig()->aprs_is.active) {
@@ -145,11 +158,10 @@ bool BeaconTask::sendBeacon(System &system) {
   if (system.getUserConfig()->telemetry.active) {
     system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(), "Vor _toModem in Beacontask");
     system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(), "Telemetriedaten: %s", getTelemetryData(system));
-  
-    _beaconMsg->getBody()->setData("Etwas Text von mir");
+    _beaconMsg->setPath("WIDE1-1");
+    _beaconMsg->getBody()->setData(String("=") + create_lat_aprs(lat) + "L" + create_long_aprs(lng) + "&" + getTelemetryData(system));
     _toModem.addElement(_beaconMsg);
   }
-
 
   system.getDisplay().addFrame(std::shared_ptr<DisplayFrame>(new TextFrame("BEACON", _beaconMsg->toString())));
 

@@ -6,7 +6,9 @@
 #include "Task.h"
 #include "TaskBeacon.h"
 #include "project_configuration.h"
+#include  "DHT.h"
 
+DHT dhtobj(25,DHT22);
 
 BeaconTask::BeaconTask(TaskQueue<std::shared_ptr<APRSMessage>> &toModem, TaskQueue<std::shared_ptr<APRSMessage>> &toAprsIs) : Task(TASK_BEACON, TaskBeacon), _toModem(toModem), _toAprsIs(toAprsIs), _ss(1), _useGps(false) {
 }
@@ -30,7 +32,9 @@ bool BeaconTask::setup(System &system) {
     _userButton.attachClick(pushButton);
     _send_update = false;
   }
-
+  dhtobj.begin();
+  //dhtobj.setPin(25);
+ 
   _useGps = system.getUserConfig()->beacon.use_gps;
   
   
@@ -100,6 +104,26 @@ String create_long_aprs(double lng) {
   return lng_str;
 }
 
+
+/*
+  Reads out temperature and humidity values form a dht22 sensor on io pin
+  configured.
+  Returns results in string-format
+*/ 
+String getTempHumid(System &system){
+  char outBuffer[40]; 
+  //get IO port to read a dht22 from configuration
+  //int dhtPort = system.getUserConfig()->telemetry.dht22_pin;
+  float h = dhtobj.readHumidity();
+  float t = dhtobj.readTemperature();
+  Serial.print("h aus DHT22: ");
+  Serial.println(h);
+  Serial.print("t aus DHT22: ");
+  Serial.println(t);
+  sprintf(outBuffer, "Hum: %3.1f, Temp: %3.1f",h,t);
+  system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "DHT-DAten: %s", outBuffer);
+  return (String) outBuffer;  
+}
 /*
   Collect and format measurements connected to IO Ports at the
   local board and format it into a string to be sent out as telemetry data.
@@ -109,6 +133,8 @@ String create_long_aprs(double lng) {
 
 String getTelemetryData(System &system){
   char outBuffer[40]; 
+  String tmpOutStr="";
+
   //get IO port to read a direct voltage from configuration
   int voltagePort = system.getUserConfig()->telemetry.voltage_pin;
 
@@ -124,10 +150,12 @@ String getTelemetryData(System &system){
   double vf=v/5.0/4096.0*voltageSkaling;
   
   //format for proper readibility
-  sprintf(outBuffer, "U: %3.1fV on IO %d", vf, voltagePort);
-  system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "Telemetriedaten: %s", outBuffer);
+  sprintf(outBuffer, "U: %3.1fV ", vf);
+  tmpOutStr=(String) outBuffer;
+  tmpOutStr=tmpOutStr+" "+getTempHumid(system);
+  system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "","Telemetriedaten: %s", tmpOutStr);
   
-  return (String) outBuffer;  
+  return (String) tmpOutStr;  
 }
 
 
@@ -160,6 +188,9 @@ bool BeaconTask::sendBeacon(System &system) {
     system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(), "Telemetriedaten: %s", getTelemetryData(system));
     _beaconMsg->setPath("WIDE1-1");
     _beaconMsg->getBody()->setData(String("=") + create_lat_aprs(lat) + "L" + create_long_aprs(lng) + "&" + getTelemetryData(system));
+    Serial.print("Telemetrydata: ");
+    Serial.println(getTelemetryData(system));
+    Serial.println(_beaconMsg->toString());
     _toModem.addElement(_beaconMsg);
   }
 

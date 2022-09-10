@@ -55,7 +55,8 @@
 
 	"telemetry": {
 		"active": true,
-		"voltage_pin": 35
+		"voltage_pin": 35,
+		"voltage_scaling": 15
 	},
 
 	"display": {

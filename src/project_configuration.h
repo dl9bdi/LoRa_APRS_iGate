@@ -95,10 +95,11 @@ public:
 
   class Telemetry {
   public:
-    Telemetry() : active(true), voltagePin(0) {
+    Telemetry() : active(true), voltage_pin(0), voltage_scaling(15){
     }
     bool active;
-    int     voltagePin;
+    int  voltage_pin;
+    float voltage_scaling;
   };
 
   class Display {

@@ -110,10 +110,10 @@ String create_long_aprs(double lng) {
 String getTelemetryData(System &system){
   char outBuffer[40]; 
   //get IO port to read a direct voltage from configuration
-  int voltagePort = system.getUserConfig()->telemetry.voltagePin;
+  int voltagePort = system.getUserConfig()->telemetry.voltage_pin;
 
   //get voltage scaling faktor. This is used for output formatting and gives the real world voltage value of an IO pin input of 3.3V 
-  float voltageSkaling = system.getUserConfig()->telemetry.voltageScaling;
+  float voltageSkaling = system.getUserConfig()->telemetry.voltage_scaling;
 
   //do an average over some measuremets to reduce jitter
   int v=0;

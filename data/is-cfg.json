@@ -1,5 +1,5 @@
 {
-	"callsign": "DL9BDI-8",
+	"callsign": "NOCALL-10",
 	"network": {
 		"DHCP": true,
 		"static": {
@@ -26,15 +26,15 @@
 	"beacon": {
 		"message": "LoRa iGATE",
 		"position": {
-			"latitude": 50.12623,
-			"longitude": 18.89622
+			"latitude": 53.12623,
+			"longitude": 8.89622
 		},
 		"use_gps": false,
 		"timeout": 15
 	},
 	"aprs_is": {
 		"active": true,
-		"passcode": "",
+		"passcode": "...",
 		"server": "euro.aprs2.net",
 		"port": 14580
 	},
@@ -52,15 +52,13 @@
 		"coding_rate4": 5,
 		"tx_enable": true
 	},
-
 	"telemetry": {
-		"active": true,  		
+		"active": true,
 		"voltage_pin": 35,
 		"voltage_scaling": 15,
-		"dht22_pin": 25
-
+		"dht22_pin": 25,
+		"telemetry_call": "DL9BDI-8"
 	},
-
 	"display": {
 		"always_on": false,
 		"timeout": 10,

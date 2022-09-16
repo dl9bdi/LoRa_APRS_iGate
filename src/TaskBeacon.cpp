@@ -7,8 +7,16 @@
 #include "TaskBeacon.h"
 #include "project_configuration.h"
 #include  "DHT.h"
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
+//define port for DHT sensor
 DHT dhtobj(25,DHT22);
+
+//define port for DS18B20 port and sensor address
+OneWire oneWire(4);
+DallasTemperature sensors(&oneWire);
+DeviceAddress DS18Address;
 
 BeaconTask::BeaconTask(TaskQueue<std::shared_ptr<APRSMessage>> &toModem, TaskQueue<std::shared_ptr<APRSMessage>> &toAprsIs) : Task(TASK_BEACON, TaskBeacon), _toModem(toModem), _toAprsIs(toAprsIs), _ss(1), _useGps(false) {
 }
@@ -20,21 +28,41 @@ OneButton BeaconTask::_userButton;
 bool      BeaconTask::_send_update;
 uint      BeaconTask::_instances;
 
-
-
+// function to print a device address
+void printAddress(DeviceAddress deviceAddress)
+{
+  for (uint8_t i = 0; i < 8; i++)
+  {
+    if (deviceAddress[i] < 16) Serial.print("0");
+    Serial.print(deviceAddress[i], HEX);
+  }
+}
 void BeaconTask::pushButton() {
   _send_update = true;
 }
 
 bool BeaconTask::setup(System &system) {
+
+  float t;
   if (_instances++ == 0 && system.getBoardConfig()->Button > 0) {
     _userButton = OneButton(system.getBoardConfig()->Button, true, true);
     _userButton.attachClick(pushButton);
     _send_update = false;
   }
+  //initialize DHT sensor
   dhtobj.begin();
-  //dhtobj.setPin(25);
- 
+
+  //initialize DS180B20 sensor
+  sensors.begin();
+  /*
+  Serial.print("Found ");
+  Serial.print(sensors.getDeviceCount(), DEC);
+  Serial.println(" devices.");
+  */
+  //read hardware address for first found DS18B20 sensor
+  sensors.getAddress(DS18Address, 0);
+  printAddress(DS18Address);
+  
   _useGps = system.getUserConfig()->beacon.use_gps;
   
   
@@ -104,6 +132,29 @@ String create_long_aprs(double lng) {
   return lng_str;
 }
 
+/*
+  Reads out temperature from a DS18B20 sensor
+  Returns results in string-format
+*/ 
+String getTempDS18(System &system){
+  char outBuffer[40]; 
+  
+  float t, t1;
+  sensors.requestTemperatures();
+  t = sensors.getTempC(DS18Address);
+  t1 = sensors.getTempCByIndex(1);
+
+  /*
+  Serial.print("t aus DS18: ");
+  Serial.println(t);
+  Serial.print("t1 aus DS18: ");
+  Serial.println(t1);
+  */
+
+  sprintf(outBuffer, "TempDS18: %3.1fC ",t);
+  
+  return (String) outBuffer;  
+}
 
 /*
   Reads out temperature and humidity values form a dht22 sensor on io pin
@@ -116,12 +167,12 @@ String getTempHumid(System &system){
   //int dhtPort = system.getUserConfig()->telemetry.dht22_pin;
   float h = dhtobj.readHumidity();
   float t = dhtobj.readTemperature();
-  Serial.print("h aus DHT22: ");
+  /*Serial.print("h aus DHT22: ");
   Serial.println(h);
   Serial.print("t aus DHT22: ");
   Serial.println(t);
-  sprintf(outBuffer, "Hum: %3.1f, Temp: %3.1f",h,t);
-  system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "DHT-DAten: %s", outBuffer);
+  */
+  sprintf(outBuffer, "Hum: %3.1f%%, Temp: %3.1fC ",h,t);
   return (String) outBuffer;  
 }
 /*
@@ -152,7 +203,7 @@ String getTelemetryData(System &system){
   //format for proper readibility
   sprintf(outBuffer, "U: %3.1fV ", vf);
   tmpOutStr=(String) outBuffer;
-  tmpOutStr=tmpOutStr+" "+getTempHumid(system);
+  tmpOutStr=tmpOutStr+" "+getTempHumid(system)+" "+getTempDS18(system);
   system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "","Telemetriedaten: %s", tmpOutStr);
   
   return (String) tmpOutStr;  
@@ -176,22 +227,26 @@ bool BeaconTask::sendBeacon(System &system) {
   system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(), "[%s] %s", timeString().c_str(), _beaconMsg->encode().c_str());
 
   if (system.getUserConfig()->aprs_is.active) {
+    _beaconMsg->setSource(system.getUserConfig()->callsign);
     _toAprsIs.addElement(_beaconMsg);
   }
 
   if (system.getUserConfig()->digi.beacon) {
+    _beaconMsg->setSource(system.getUserConfig()->callsign);
     _toModem.addElement(_beaconMsg);
   }
 
   if (system.getUserConfig()->telemetry.active) {
-    system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(), "Vor _toModem in Beacontask");
-    system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(), "Telemetriedaten: %s", getTelemetryData(system));
+    _beaconMsg->setSource(system.getUserConfig()->telemetry.telemetry_call);
     _beaconMsg->setPath("WIDE1-1");
-    _beaconMsg->getBody()->setData(String("=") + create_lat_aprs(lat) + "L" + create_long_aprs(lng) + "&" + getTelemetryData(system));
+    _beaconMsg->setType('>');
+    _beaconMsg->getBody()->setData(String("=") + create_lat_aprs(lat) + "L" + create_long_aprs(lng) + "& "  + getTelemetryData(system));
     Serial.print("Telemetrydata: ");
     Serial.println(getTelemetryData(system));
     Serial.println(_beaconMsg->toString());
     _toModem.addElement(_beaconMsg);
+    //_beaconMsg->setSource(system.getUserConfig()->callsign);
+ 
   }
 
   system.getDisplay().addFrame(std::shared_ptr<DisplayFrame>(new TextFrame("BEACON", _beaconMsg->toString())));

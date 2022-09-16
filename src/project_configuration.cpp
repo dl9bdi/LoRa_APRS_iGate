@@ -69,6 +69,7 @@ void ProjectConfigurationManagement::readProjectConfiguration(DynamicJsonDocumen
   conf.telemetry.voltage_pin= data["telemetry"]["voltage_pin"] | 35;
   conf.telemetry.active     = data["telemetry"]["voltage_scaling"] | 15;
   conf.telemetry.dht22_pin  = data["telemetry"]["dht22_pin"] | 34;
+  conf.telemetry.telemetry_call = data["telemetry"]["telemetry_call"] | "NOCALL-8";
 
   conf.display.alwaysOn     = data["display"]["always_on"] | true;
   conf.display.timeout      = data["display"]["timeout"] | 10;
@@ -159,7 +160,8 @@ void ProjectConfigurationManagement::writeProjectConfiguration(Configuration &co
   data["telemetry"]["voltage_pin"]        = conf.telemetry.voltage_pin;
   data["telemetry"]["voltage_scaling"]    = conf.telemetry.voltage_scaling;
   data["telemetry"]["dht22_pin"]          = conf.telemetry.dht22_pin;
- 
+  data["telemetry"]["telemetry_call"]     = conf.telemetry.telemetry_call;
+
   data["display"]["always_on"]            = conf.display.alwaysOn;
   data["display"]["timeout"]              = conf.display.timeout;
   data["display"]["overwrite_pin"]        = conf.display.overwritePin;

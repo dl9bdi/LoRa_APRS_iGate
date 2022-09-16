@@ -95,12 +95,13 @@ public:
 
   class Telemetry {
   public:
-    Telemetry() : active(true), voltage_pin(0), voltage_scaling(15), dht22_pin(0){
+    Telemetry() : active(true), voltage_pin(0), voltage_scaling(15), dht22_pin(0), telemetry_call("NOCALL-8"){
     }
     bool active;
     int  voltage_pin;
     float voltage_scaling;
     int dht22_pin;
+    String telemetry_call;
   };
 
   class Display {

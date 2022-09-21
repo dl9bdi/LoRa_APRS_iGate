@@ -184,7 +184,4 @@ void loop() {
     LoRaSystem.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, MODULE_NAME, "System connected after a restart to the network, syslog server set");
     syslogSet = true;
   }
-  
-
-  
 }

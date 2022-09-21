@@ -6,6 +6,7 @@
 #include "Task.h"
 #include "TaskBeacon.h"
 #include "project_configuration.h"
+
 #include  "DHT.h"
 #include <OneWire.h>
 #include <DallasTemperature.h>
@@ -13,7 +14,7 @@
 //define port for DHT sensor
 DHT dhtobj(25,DHT22);
 
-//define port for DS18B20 port and sensor address
+//define port for DS18B20 port and sensor address. This cannot be done during runtime.
 OneWire oneWire(4);
 DallasTemperature sensors(&oneWire);
 DeviceAddress DS18Address;
@@ -28,6 +29,7 @@ OneButton BeaconTask::_userButton;
 bool      BeaconTask::_send_update;
 uint      BeaconTask::_instances;
 
+
 // function to print a device address
 void printAddress(DeviceAddress deviceAddress)
 {
@@ -37,34 +39,38 @@ void printAddress(DeviceAddress deviceAddress)
     Serial.print(deviceAddress[i], HEX);
   }
 }
+
+
 void BeaconTask::pushButton() {
   _send_update = true;
 }
 
 bool BeaconTask::setup(System &system) {
 
-  float t;
+  
   if (_instances++ == 0 && system.getBoardConfig()->Button > 0) {
     _userButton = OneButton(system.getBoardConfig()->Button, true, true);
     _userButton.attachClick(pushButton);
     _send_update = false;
   }
+  
   //initialize DHT sensor
   dhtobj.begin();
 
   //initialize DS180B20 sensor
   sensors.begin();
-  /*
+  
+  
   Serial.print("Found ");
-  Serial.print(sensors.getDeviceCount(), DEC);
+  Serial.print(sensors.getDeviceCount());
   Serial.println(" devices.");
-  */
+  
   //read hardware address for first found DS18B20 sensor
   sensors.getAddress(DS18Address, 0);
   printAddress(DS18Address);
   
   _useGps = system.getUserConfig()->beacon.use_gps;
-  
+ 
   
   if (_useGps) {
     if (system.getBoardConfig()->GpsRx != 0) {
@@ -77,9 +83,15 @@ bool BeaconTask::setup(System &system) {
   // setup beacon
   _beacon_timer.setTimeout(system.getUserConfig()->beacon.timeout * 60 * 1000);
 
+  //define message for beacon over internet 
   _beaconMsg = std::shared_ptr<APRSMessage>(new APRSMessage());
   _beaconMsg->setSource(system.getUserConfig()->callsign);
   _beaconMsg->setDestination("APLG01");
+
+  //define message for telemetry beacon over rf 
+  _TeleBeaconMsg = std::shared_ptr<APRSMessage>(new APRSMessage());
+  _TeleBeaconMsg->setSource(system.getUserConfig()->telemetry.telemetry_call);
+  _TeleBeaconMsg->setDestination("APLG01");
 
   return true;
 }
@@ -136,45 +148,37 @@ String create_long_aprs(double lng) {
   Reads out temperature from a DS18B20 sensor
   Returns results in string-format
 */ 
+
 String getTempDS18(System &system){
   char outBuffer[40]; 
   
-  float t, t1;
+  float t;
   sensors.requestTemperatures();
   t = sensors.getTempC(DS18Address);
-  t1 = sensors.getTempCByIndex(1);
-
-  /*
-  Serial.print("t aus DS18: ");
-  Serial.println(t);
-  Serial.print("t1 aus DS18: ");
-  Serial.println(t1);
-  */
-
-  sprintf(outBuffer, "TempDS18: %3.1fC ",t);
+  
+  sprintf(outBuffer, "T2: %3.1fC ",t);
   
   return (String) outBuffer;  
 }
+
 
 /*
   Reads out temperature and humidity values form a dht22 sensor on io pin
   configured.
   Returns results in string-format
-*/ 
+*/
+
 String getTempHumid(System &system){
   char outBuffer[40]; 
   //get IO port to read a dht22 from configuration
   //int dhtPort = system.getUserConfig()->telemetry.dht22_pin;
   float h = dhtobj.readHumidity();
   float t = dhtobj.readTemperature();
-  /*Serial.print("h aus DHT22: ");
-  Serial.println(h);
-  Serial.print("t aus DHT22: ");
-  Serial.println(t);
-  */
-  sprintf(outBuffer, "Hum: %3.1f%%, Temp: %3.1fC ",h,t);
+  
+  sprintf(outBuffer, "h: %3.1f%%, T1: %3.1fC ",h,t);
   return (String) outBuffer;  
 }
+
 /*
   Collect and format measurements connected to IO Ports at the
   local board and format it into a string to be sent out as telemetry data.
@@ -182,28 +186,44 @@ String getTempHumid(System &system){
   temperature sensors, etc. 
 */
 
-String getTelemetryData(System &system){
-  char outBuffer[40]; 
+
+
+String getVoltage(System &system){
+ char outBuffer[40]; 
   String tmpOutStr="";
 
   //get IO port to read a direct voltage from configuration
   int voltagePort = system.getUserConfig()->telemetry.voltage_pin;
 
   //get voltage scaling faktor. This is used for output formatting and gives the real world voltage value of an IO pin input of 3.3V 
-  float voltageSkaling = system.getUserConfig()->telemetry.voltage_scaling;
+  float voltageScaling = system.getUserConfig()->telemetry.voltage_scaling;
 
   //do an average over some measuremets to reduce jitter
   int v=0;
   for (int i=0;i<5;i++){
     v+=analogRead(voltagePort);
   }
-  //scale output to realword voltage value
-  double vf=v/5.0/4096.0*voltageSkaling;
-  
+  v=v/5;
+
+  // analog ports act not linear, so we have to do some linearisation
+  double vf=-0.15675368+0.00114342*v-0.00000008*v*v;
+  //now scale to configured real world max value
+  vf=vf/3.3*voltageScaling;
+  //voltage reading must be >=0, if negative values occur, these are up to the linearization function, so set them to 0
+  if (vf<0) {
+    vf=0;
+  } 
+
   //format for proper readibility
   sprintf(outBuffer, "U: %3.1fV ", vf);
   tmpOutStr=(String) outBuffer;
-  tmpOutStr=tmpOutStr+" "+getTempHumid(system)+" "+getTempDS18(system);
+  return (String) outBuffer;  
+}  
+
+String getTelemetryData(System &system){
+  char outBuffer[40]; 
+  String tmpOutStr="";
+  tmpOutStr=tmpOutStr+getVoltage(system)+" "+getTempHumid(system)+" "+getTempDS18(system);
   system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "","Telemetriedaten: %s", tmpOutStr);
   
   return (String) tmpOutStr;  
@@ -223,12 +243,16 @@ bool BeaconTask::sendBeacon(System &system) {
     }
   }
   _beaconMsg->getBody()->setData(String("=") + create_lat_aprs(lat) + "L" + create_long_aprs(lng) + "&" + system.getUserConfig()->beacon.message);
- 
+  _TeleBeaconMsg->getBody()->setData(String("=") + create_lat_aprs(lat) + "L" + create_long_aprs(lng) + "&" + system.getUserConfig()->beacon.message);
+
   system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(), "[%s] %s", timeString().c_str(), _beaconMsg->encode().c_str());
+  system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(), "[%s] %s", timeString().c_str(), _TeleBeaconMsg->encode().c_str());
+
 
   if (system.getUserConfig()->aprs_is.active) {
     _beaconMsg->setSource(system.getUserConfig()->callsign);
     _toAprsIs.addElement(_beaconMsg);
+    //Serial.print("toAPRS Message gesetzt");
   }
 
   if (system.getUserConfig()->digi.beacon) {
@@ -237,16 +261,12 @@ bool BeaconTask::sendBeacon(System &system) {
   }
 
   if (system.getUserConfig()->telemetry.active) {
-    _beaconMsg->setSource(system.getUserConfig()->telemetry.telemetry_call);
-    _beaconMsg->setPath("WIDE1-1");
-    _beaconMsg->setType('>');
-    _beaconMsg->getBody()->setData(String("=") + create_lat_aprs(lat) + "L" + create_long_aprs(lng) + "& "  + getTelemetryData(system));
-    Serial.print("Telemetrydata: ");
-    Serial.println(getTelemetryData(system));
-    Serial.println(_beaconMsg->toString());
-    _toModem.addElement(_beaconMsg);
-    //_beaconMsg->setSource(system.getUserConfig()->callsign);
- 
+    //_TeleBeaconMsg->setSource(system.getUserConfig()->telemetry.telemetry_call);
+    _TeleBeaconMsg->setPath("WIDE1-1");
+    _TeleBeaconMsg->setType('>');
+    _TeleBeaconMsg->getBody()->setData(String("=") + create_lat_aprs(lat) + "L" + create_long_aprs(lng) + "& "  + getTelemetryData(system));
+     _toModem.addElement(_TeleBeaconMsg);
+  
   }
 
   system.getDisplay().addFrame(std::shared_ptr<DisplayFrame>(new TextFrame("BEACON", _beaconMsg->toString())));

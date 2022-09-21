@@ -19,7 +19,7 @@
 		"AP": [
 			{
 				"SSID": "...",
-				"password": "..."
+				"password": "...."
 			}
 		]
 	},
@@ -55,9 +55,9 @@
 	"telemetry": {
 		"active": true,
 		"voltage_pin": 35,
-		"voltage_scaling": 15,
+		"voltage_scaling": 17,
 		"dht22_pin": 25,
-		"telemetry_call": "DL9BDI-8"
+		"telemetry_call": "NOCALL-2"
 	},
 	"display": {
 		"always_on": false,

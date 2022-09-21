@@ -20,7 +20,8 @@
 #include "TaskRouter.h"
 #include "TaskWifi.h"
 #include "project_configuration.h"
-#include "TaskRfBeacon.h"
+#include "DHT.h"
+
 
 #define VERSION     "22.20.0"
 #define MODULE_NAME "Main"
@@ -43,12 +44,14 @@ EthTask      ethTask;
 WifiTask     wifiTask;
 OTATask      otaTask;
 NTPTask      ntpTask;
-RfBeaconTask rfbeaconTask;
 FTPTask      ftpTask;
 MQTTTask     mqttTask(toMQTT);
 AprsIsTask   aprsIsTask(toAprsIs);
 RouterTask   routerTask(fromModem, toModem, toAprsIs, toMQTT);
 BeaconTask   beaconTask(toModem, toAprsIs);
+
+
+
 
 void setup() {
   Serial.begin(115200);
@@ -58,6 +61,7 @@ void setup() {
   LoRaSystem.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, MODULE_NAME, "LoRa APRS iGate by OE5BPA (Peter Buchegger)");
   LoRaSystem.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, MODULE_NAME, "Version: %s", VERSION);
 
+ 
   std::list<BoardConfig const *> boardConfigs;
   boardConfigs.push_back(&TTGO_LORA32_V1);
   boardConfigs.push_back(&TTGO_LORA32_V2);
@@ -112,7 +116,6 @@ void setup() {
   LoRaSystem.getTaskManager().addTask(&modemTask);
   LoRaSystem.getTaskManager().addTask(&routerTask);
   LoRaSystem.getTaskManager().addTask(&beaconTask);
-  LoRaSystem.getTaskManager().addTask(&rfbeaconTask); 
 
   bool tcpip = false;
 
@@ -163,6 +166,11 @@ void setup() {
     pinMode(userConfig.display.overwritePin, INPUT_PULLUP);
   }
 
+  //start dht22 measurement
+    //get IO port to read a dht22 from configuration
+  //int dhtPort = system.getUserConfig()->telemetry.dht22_pin;
+
+
   delay(5000);
   LoRaSystem.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, MODULE_NAME, "setup done...");
 }
@@ -176,7 +184,4 @@ void loop() {
     LoRaSystem.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, MODULE_NAME, "System connected after a restart to the network, syslog server set");
     syslogSet = true;
   }
-  
-
-  
 }

@@ -15,7 +15,6 @@ enum TaskNames
   TaskMQTT,
   TaskBeacon,
   TaskSize,
-  TaskRfBeacon
 };
 
 #define TASK_APRS_IS  "AprsIsTask"
@@ -29,6 +28,5 @@ enum TaskNames
 #define TASK_ROUTER   "RouterTask"
 #define TASK_MQTT     "MQTTTask"
 #define TASK_BEACON   "BeaconTask"
-#define TASK_RFBEACON "RfBeaconTask"
 
 #endif

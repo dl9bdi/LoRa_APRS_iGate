@@ -79,6 +79,7 @@ bool RadiolibTask::setup(System &system) {
     }
     _stateInfo = "LoRa-Modem failed";
     _state     = Error;
+    
   }
 
   state = radio->setCRC(true);
@@ -104,6 +105,7 @@ bool RadiolibTask::setup(System &system) {
 
   _stateInfo = "";
   return true;
+  
 }
 
 int  transmissionState = RADIOLIB_ERR_NONE;
@@ -159,14 +161,14 @@ bool RadiolibTask::loop(System &system) {
     if (!txWaitTimer.check()) {
     } else {
       if (!txEnable) {
-        // system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, getName(), "[%s] TX is not enabled", timeString().c_str());
+        //system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, getName(), "[%s] TX is not enabled", timeString().c_str());
       } else {
         if (transmitFlag) {
-          // system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, getName(), "[%s] TX signal detected. Waiting TX", timeString().c_str());
+          //system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, getName(), "[%s] TX signal detected. Waiting TX", timeString().c_str());
         } else {
           if (!_toModem.empty()) {
             if (config.frequencyRx == config.frequencyTx && (radio->getModemStatus() & 0x01) == 0x01) {
-              // system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, getName(), "[%s] RX signal detected. Waiting TX", timeString().c_str());
+              //system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, getName(), "[%s] RX signal detected. Waiting TX", timeString().c_str());
             } else {
               std::shared_ptr<APRSMessage> msg = _toModem.getElement();
               system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, getName(), "[%s] Transmitting packet '%s'", timeString().c_str(), msg->toString().c_str());

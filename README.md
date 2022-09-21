@@ -1,9 +1,37 @@
-# LoRa APRS iGate
+# LoRa APRS iGate with rf telemetry beacon
 
-Version modified by DL9BDI to include telemetry data sent out via rf beacon.
+Peter Buchegger, OE5BPA, did a great job in providing software for LoRa devices so that they could be used as 
+as iGate or Tracker. This project is a fork of Peter's LoRa iGate project to add the functionality of a radio beacon.
 
-![Build check and build](https://github.com/lora-aprs/LoRa_APRS_iGate/workflows/Build%20check%20and%20build/badge.svg)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/0b7452d5b3b747b88c736e253dda51e6)](https://app.codacy.com/gh/lora-aprs/LoRa_APRS_iGate?utm_source=github.com&utm_medium=referral&utm_content=lora-aprs/LoRa_APRS_iGate&utm_campaign=Badge_Grade_Dashboard)
+iGates often operate autonomously at locations such as a repeater site, which acts as a gateway for other LoRa stations 
+such as trackers to aprs.fi to present location information or other APRS data.
+The path of the data goes from RF side to the Internet.
+
+It would be great if such an iGate would also be able to send status information about the repeater location via radio.
+This data could then be received by other LoRa iGate stations and displayed on aprs.fi.
+
+The idea behind this is to have a decoupled information channel to monitor the repeater equipment and environment. Even if the 
+internet connection to the repeater site fails and remote access is not possible, one can at least see if the repeater is working in general.
+
+If the iGate hardware is buffered by a bettery one could even detect power outages at the repeater site.
+
+This project contains modifications to Peters code that realize such a radio beacon. It reads out several sensors connected to the iGate ESP board
+* one DHT22 sensor to measure humidity and temperature at the site
+* one DS18B20 sensor e.g. to be placed at transmitters pa to measure special hardware temperatures
+* one direct voltage measurement pin to read out the sites power supply
+
+The measures values are send out by the radio module of the iGate as regular APRS message and can be viewed on aprs.fi.
+
+It is possible to configure a seperate outgoing call (e.g. CALL-2) to be able to destinguish between iGate and Telemetry
+
+Up to know this version ha a protoype status and has to be optimized and refined - but it is working for me.
+
+Below you can find the original documentation from OE5BPA's project.
+
+vy73 de Matthias, DL9BDI
+
+
+---
 
 The LoRa APRS iGate will work with very cheep hardware which you can buy from amazon, ebay or aliexpress.
 Try it out and be part of the APRS network.

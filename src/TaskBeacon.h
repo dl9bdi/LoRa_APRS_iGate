@@ -8,6 +8,8 @@
 #include <TaskMQTT.h>
 #include <TaskManager.h>
 
+
+
 class BeaconTask : public Task {
 public:
   BeaconTask(TaskQueue<std::shared_ptr<APRSMessage>> &toModem, TaskQueue<std::shared_ptr<APRSMessage>> &toAprsIs);
@@ -21,7 +23,9 @@ private:
   TaskQueue<std::shared_ptr<APRSMessage>> &_toModem;
   TaskQueue<std::shared_ptr<APRSMessage>> &_toAprsIs;
 
-  std::shared_ptr<APRSMessage> _beaconMsg;
+  std::shared_ptr<APRSMessage> _beaconMsg;      //message object for beacon messages
+  std::shared_ptr<APRSMessage> _TeleBeaconMsg;  //message object for telemetry data, not to mess it up with standard object
+
   Timer                        _beacon_timer;
 
   HardwareSerial _ss;
@@ -32,6 +36,10 @@ private:
   static OneButton _userButton;
   static bool      _send_update;
   static void      pushButton();
+  
+  
+
+
 };
 
 #endif

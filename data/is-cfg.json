@@ -1,5 +1,5 @@
 {
-	"callsign": "NOCALL-10",
+	"callsign": "DL9BDI-10",
 	"network": {
 		"DHCP": true,
 		"static": {
@@ -18,8 +18,8 @@
 		"active": true,
 		"AP": [
 			{
-				"SSID": "...",
-				"password": "...."
+				"SSID": "SpdBt",
+				"password": "DPifRWaBS50i28357B."
 			}
 		]
 	},
@@ -34,7 +34,7 @@
 	},
 	"aprs_is": {
 		"active": true,
-		"passcode": "...",
+		"passcode": "19109",
 		"server": "euro.aprs2.net",
 		"port": 14580
 	},
@@ -57,7 +57,7 @@
 		"voltage_pin": 35,
 		"voltage_scaling": 17,
 		"dht22_pin": 25,
-		"telemetry_call": "NOCALL-2"
+		"telemetry_call": "DL9BDI-2"
 	},
 	"display": {
 		"always_on": false,

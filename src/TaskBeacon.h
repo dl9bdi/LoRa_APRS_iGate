@@ -18,6 +18,7 @@ public:
   virtual bool setup(System &system) override;
   virtual bool loop(System &system) override;
   bool         sendBeacon(System &system);
+  
 
 private:
   TaskQueue<std::shared_ptr<APRSMessage>> &_toModem;
@@ -36,6 +37,7 @@ private:
   static OneButton _userButton;
   static bool      _send_update;
   static void      pushButton();
+  //static uint     _telemetrySequence; // sequence counter for sending out telemetry beacon
   
   
 

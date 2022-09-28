@@ -11,11 +11,17 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-//define port for DHT sensor
-DHT dhtobj(25,DHT22);
+
+//define IO ports for measurements
+#define DHT22PORT   25
+#define DS18PORT     4
+#define VOLTAGEPORT 35
+
+//create object for DHT sensor
+DHT dhtobj(DHT22PORT,DHT22);
 
 //define port for DS18B20 port and sensor address. This cannot be done during runtime.
-OneWire oneWire(4);
+OneWire oneWire(DS18PORT);
 DallasTemperature sensors(&oneWire);
 DeviceAddress DS18Address;
 
@@ -28,6 +34,8 @@ BeaconTask::~BeaconTask() {
 OneButton BeaconTask::_userButton;
 bool      BeaconTask::_send_update;
 uint      BeaconTask::_instances;
+uint      _telemetrySequence;
+uint      _telemetryScalingSequence; 
 
 
 // function to print a device address
@@ -93,6 +101,10 @@ bool BeaconTask::setup(System &system) {
   _TeleBeaconMsg->setSource(system.getUserConfig()->telemetry.telemetry_call);
   _TeleBeaconMsg->setDestination("APLG01");
 
+  //initialize telemetry sequence with 1 
+  _telemetrySequence=0;
+  _telemetryScalingSequence=0;
+
   return true;
 }
 
@@ -149,36 +161,53 @@ String create_long_aprs(double lng) {
   Returns results in string-format
 */ 
 
-String getTempDS18(System &system){
-  char outBuffer[40]; 
+float getTempDS18(System &system){
+  //char outBuffer[40]; 
   
   float t;
   sensors.requestTemperatures();
   t = sensors.getTempC(DS18Address);
   
-  sprintf(outBuffer, "T2: %3.1fC ",t);
+  //sprintf(outBuffer, "T2: %3.1fC ",t);
   
-  return (String) outBuffer;  
+  return t;  
 }
 
-
 /*
-  Reads out temperature and humidity values form a dht22 sensor on io pin
+  Reads out humidity value fromm a dht22 sensor on io pin
   configured.
-  Returns results in string-format
+  
+*/
+/*
+float getHumid(System &system){
+  //char outBuffer[40]; 
+  //get IO port to read a dht22 from configuration
+  //int dhtPort = system.getUserConfig()->telemetry.dht22_pin;
+  //float h = dhtobj.readHumidity();
+  //float t = dhtobj.readTemperature();
+  
+  //sprintf(outBuffer, "h: %3.1f%%, T1: %3.1fC ",h,t);
+  return dhtobj.readHumidity();;  
+}
 */
 
-String getTempHumid(System &system){
+/*
+  Reads out temperature fromm a dht22 sensor on io pin
+  configured.
+  
+*/
+/*
+float getTemp(System &system){
   char outBuffer[40]; 
   //get IO port to read a dht22 from configuration
   //int dhtPort = system.getUserConfig()->telemetry.dht22_pin;
-  float h = dhtobj.readHumidity();
-  float t = dhtobj.readTemperature();
+  //float h = dhtobj.readHumidity();
+  //float t = dhtobj.readTemperature();
   
-  sprintf(outBuffer, "h: %3.1f%%, T1: %3.1fC ",h,t);
-  return (String) outBuffer;  
+  //sprintf(outBuffer, "h: %3.1f%%, T1: %3.1fC ",h,t);
+  return dhtobj.readTemperature(); 
 }
-
+*/
 /*
   Collect and format measurements connected to IO Ports at the
   local board and format it into a string to be sent out as telemetry data.
@@ -188,12 +217,12 @@ String getTempHumid(System &system){
 
 
 
-String getVoltage(System &system){
- char outBuffer[40]; 
-  String tmpOutStr="";
+float getVoltage(System &system){
+  //char outBuffer[40]; 
+  //String tmpOutStr="";
 
   //get IO port to read a direct voltage from configuration
-  int voltagePort = system.getUserConfig()->telemetry.voltage_pin;
+  //int voltagePort = system.getUserConfig()->telemetry.voltage_pin;
 
   //get voltage scaling faktor. This is used for output formatting and gives the real world voltage value of an IO pin input of 3.3V 
   float voltageScaling = system.getUserConfig()->telemetry.voltage_scaling;
@@ -201,7 +230,7 @@ String getVoltage(System &system){
   //do an average over some measuremets to reduce jitter
   int v=0;
   for (int i=0;i<5;i++){
-    v+=analogRead(voltagePort);
+    v+=analogRead(VOLTAGEPORT);
   }
   v=v/5;
 
@@ -215,18 +244,72 @@ String getVoltage(System &system){
   } 
 
   //format for proper readibility
-  sprintf(outBuffer, "U: %3.1fV ", vf);
-  tmpOutStr=(String) outBuffer;
-  return (String) outBuffer;  
+  //sprintf(outBuffer, "U: %3.1fV ", vf);
+  //tmpOutStr=(String) outBuffer;
+  //return (String) outBuffer;
+  return vf;  
 }  
 
+/*
+Constructs a string containing values from different sensors to be added to APRS message
+Depending on configuration these is formated as human readible string or pure telemetry values. 
+*/
 String getTelemetryData(System &system){
-  char outBuffer[40]; 
-  String tmpOutStr="";
-  tmpOutStr=tmpOutStr+getVoltage(system)+" "+getTempHumid(system)+" "+getTempDS18(system);
-  system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "","Telemetriedaten: %s", tmpOutStr);
+  char outBuffer[128]; 
+
+  //tunrover sequence nr to 0 if it gets higher than 999
+  _telemetrySequence++; 
+  if (_telemetrySequence>=999){
+    _telemetrySequence=0;
+  }
+  _telemetryScalingSequence++;
+  if (_telemetryScalingSequence>10){
+    _telemetryScalingSequence=1;
+  }
+  //_telemetryScalingSequence=5;  //disable unit sending as the packets are incorrect
+
+  Serial.print("_telemetryScalingSecuence: " );
+  Serial.println(_telemetryScalingSequence);
   
-  return (String) tmpOutStr;  
+  //depending on the configuration of numeric_only different strings for sendig telemetry data will be created. 
+  //numeric_only=true is for pure numerical values only, numeric_only=false is more human readible
+  if (system.getUserConfig()->telemetry.numeric_only){
+    //every nth packet send telemetry description and scaling
+    switch (_telemetryScalingSequence){
+      case 2: 
+        sprintf(outBuffer, ":DL9BDI-2 :PARAM.SysVolt,Hum,RoomT,PaT");
+        //Serial.println("In Parameterausgabe");
+        break;
+      case 3:
+        sprintf(outBuffer, ":DL9BDI-2 :EQNS.0,0.1,0,0,1,0,0,1,0,0,1,0");
+        //Serial.println("In Unitausgabe");
+        //Serial.println(outBuffer);
+        break; 
+      case 4:
+        sprintf(outBuffer, ":DL9BDI-2 :UNIT.V,%%,C,C");
+        //Serial.println("In Unitausgabe");
+        //Serial.println(outBuffer);
+        break;
+      default:
+        //Serial.println("In Defaultzweig");
+        sprintf(outBuffer, "T#%03d,%03.0f,%03.0f,%03.0f,%03.0f", _telemetrySequence, getVoltage(system)*10, dhtobj.readHumidity(),dhtobj.readTemperature(),getTempDS18(system));
+        // increment APRS telemetry sequence counter
+         
+        break;
+      
+         
+    }
+    //sprintf(outBuffer, "T#%03d,%03.0f,%03.0f,%03.0f,%03.0f", _telemetrySequence, getVoltage(system)*10, dhtobj.readHumidity(),dhtobj.readTemperature(),getTempDS18(system));   
+  } else {
+    sprintf(outBuffer, "U: %3.1f h: %3.1f%%, T1: %3.1fC, T2: %3.1f ",getVoltage(system), dhtobj.readHumidity(),dhtobj.readTemperature(),getTempDS18(system));
+  }
+  //String tmpOutStr="";
+  //sprintf(outBuffer, "U: %3.1f h: %3.1f%%, T1: %3.1fC, T2: %3.1f ",getVoltage(system), dhtobj.readHumidity(),dhtobj.readTemperature(),getTempDS18(system));
+  //sprintf(outBuffer, "T#%03d,%03.0f,%03.0f,%03.0f,%03.0f", _telemetrySequence, getVoltage(system), dhtobj.readHumidity(),dhtobj.readTemperature(),getTempDS18(system));
+  //tmpOutStr=tmpOutStr+" "+getTempHumid(system)+" "+getTempDS18(system);
+  system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "","Telemetriedaten: %s", outBuffer);
+  
+  return (String) outBuffer;  
 }
 
 
@@ -261,10 +344,13 @@ bool BeaconTask::sendBeacon(System &system) {
   }
 
   if (system.getUserConfig()->telemetry.active) {
-    //_TeleBeaconMsg->setSource(system.getUserConfig()->telemetry.telemetry_call);
+    _TeleBeaconMsg->setSource(system.getUserConfig()->telemetry.telemetry_call);
     _TeleBeaconMsg->setPath("WIDE1-1");
     _TeleBeaconMsg->setType('>');
-    _TeleBeaconMsg->getBody()->setData(String("=") + create_lat_aprs(lat) + "L" + create_long_aprs(lng) + "& "  + getTelemetryData(system));
+
+
+    //_TeleBeaconMsg->getBody()->setData(String("=") + create_lat_aprs(lat) + "L" + create_long_aprs(lng) + "& "  + getTelemetryData(system));
+    _TeleBeaconMsg->getBody()->setData(getTelemetryData(system));
      _toModem.addElement(_TeleBeaconMsg);
   
   }

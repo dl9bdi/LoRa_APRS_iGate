@@ -66,10 +66,9 @@ void ProjectConfigurationManagement::readProjectConfiguration(DynamicJsonDocumen
   conf.lora.tx_enable       = data["lora"]["tx_enable"] | true;
 
   conf.telemetry.active           = data["telemetry"]["active"] | true;
-  conf.telemetry.voltage_pin      = data["telemetry"]["voltage_pin"] | 35;
   conf.telemetry.voltage_scaling  = data["telemetry"]["voltage_scaling"] | 13;
-  conf.telemetry.dht22_pin        = data["telemetry"]["dht22_pin"] | 34;
   conf.telemetry.telemetry_call   = data["telemetry"]["telemetry_call"] | "NOCALL-8";
+  conf.telemetry.numeric_only     = data["telemetry"]["numeric_only"]; 
 
   conf.display.alwaysOn     = data["display"]["always_on"] | true;
   conf.display.timeout      = data["display"]["timeout"] | 10;
@@ -157,10 +156,9 @@ void ProjectConfigurationManagement::writeProjectConfiguration(Configuration &co
   data["lora"]["coding_rate4"]            = conf.lora.codingRate4;
   data["lora"]["tx_enable"]               = conf.lora.tx_enable;
   data["telemetry"]["active"]             = conf.telemetry.active;
-  data["telemetry"]["voltage_pin"]        = conf.telemetry.voltage_pin;
   data["telemetry"]["voltage_scaling"]    = conf.telemetry.voltage_scaling;
-  data["telemetry"]["dht22_pin"]          = conf.telemetry.dht22_pin;
   data["telemetry"]["telemetry_call"]     = conf.telemetry.telemetry_call;
+  data["telemetry"]["numeric_only"]       = conf.telemetry.numeric_only;
 
   data["display"]["always_on"]            = conf.display.alwaysOn;
   data["display"]["timeout"]              = conf.display.timeout;

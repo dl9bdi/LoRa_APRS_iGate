@@ -30,7 +30,7 @@
 			"longitude": 8.89622
 		},
 		"use_gps": false,
-		"timeout": 15
+		"timeout": 10
 	},
 	"aprs_is": {
 		"active": true,
@@ -83,7 +83,7 @@
 	},
 	"syslog": {
 		"active": true,
-		"server": "syslog.lora-aprs.info",
+		"server": "192.168.178.222",
 		"port": 514
 	},
 	"ntp_server": "pool.ntp.org"

@@ -18,6 +18,7 @@ public:
   virtual bool setup(System &system) override;
   virtual bool loop(System &system) override;
   bool         sendBeacon(System &system);
+  String getTelemetryData(System &system);
   
 
 private:

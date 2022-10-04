@@ -13,7 +13,7 @@
 
 
 //define IO ports for measurements
-#define DHT22PORT   25
+#define DHT22PORT    0
 #define DS18PORT     4
 #define VOLTAGEPORT 35
 
@@ -62,20 +62,22 @@ bool BeaconTask::setup(System &system) {
     _send_update = false;
   }
   
+
+  system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(), "Voltage measurement port %d", VOLTAGEPORT);
+
   //initialize DHT sensor
   dhtobj.begin();
+  system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(), "DHT22 port %d", DHT22PORT);
+ 
 
   //initialize DS180B20 sensor
   sensors.begin();
-  
-  
-  Serial.print("Found ");
-  Serial.print(sensors.getDeviceCount());
-  Serial.println(" devices.");
-  
+   
+  system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(), "%d sensors detected on port %d", sensors.getDeviceCount(), DS18PORT);
+ 
   //read hardware address for first found DS18B20 sensor
   sensors.getAddress(DS18Address, 0);
-  printAddress(DS18Address);
+  //printAddress(DS18Address);
   
   _useGps = system.getUserConfig()->beacon.use_gps;
  
@@ -254,12 +256,12 @@ float getVoltage(System &system){
 Constructs a string containing values from different sensors to be added to APRS message
 Depending on configuration these is formated as human readible string or pure telemetry values. 
 */
-String getTelemetryData(System &system){
+String BeaconTask::getTelemetryData(System &system){
   char outBuffer[128]; 
 
   //tunrover sequence nr to 0 if it gets higher than 999
-  _telemetrySequence++; 
-  if (_telemetrySequence>=999){
+
+  if (_telemetrySequence>999){
     _telemetrySequence=0;
   }
   _telemetryScalingSequence++;
@@ -268,32 +270,50 @@ String getTelemetryData(System &system){
   }
   //_telemetryScalingSequence=5;  //disable unit sending as the packets are incorrect
 
+  /*
   Serial.print("_telemetryScalingSecuence: " );
   Serial.println(_telemetryScalingSequence);
-  
+
+  Serial.print("ESP Speicher: " );
+  Serial.println(ESP.getHeapSize());
+  Serial.print("ESP freier Speicher: " );
+  Serial.printlnESP.getHeapSize());
+  */
+  system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(), "_telemetryScalingSequence: %d ",_telemetryScalingSequence);
+  system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(), "_telemetrySequence: %d ",_telemetrySequence);
+  //system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "", "ESP Heap %d ",ESP.getHeapSize());
+  system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(), "Freier ESP Heap %d ",ESP.getFreeHeap());
+  //system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "", "ESP PSRam %d ",ESP.getPsramSize());
+  //system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "", "Freier ESP Heap %d ",ESP.getFreePsram());
+
+
   //depending on the configuration of numeric_only different strings for sendig telemetry data will be created. 
   //numeric_only=true is for pure numerical values only, numeric_only=false is more human readible
   if (system.getUserConfig()->telemetry.numeric_only){
     //every nth packet send telemetry description and scaling
     switch (_telemetryScalingSequence){
       case 2: 
-        sprintf(outBuffer, ":DL9BDI-2 :PARAM.SysVolt,Hum,RoomT,PaT");
+        sprintf(outBuffer, ":%s :PARAM.SysVolt,Hum,RoomT,PaT", system.getUserConfig()->telemetry.telemetry_call.c_str());
         //Serial.println("In Parameterausgabe");
         break;
       case 3:
-        sprintf(outBuffer, ":DL9BDI-2 :EQNS.0,0.1,0,0,1,0,0,1,0,0,1,0");
+        sprintf(outBuffer, ":%s :EQNS.0,0.1,0,0,1,0,0,1,0,0,1,0", system.getUserConfig()->telemetry.telemetry_call.c_str());
         //Serial.println("In Unitausgabe");
         //Serial.println(outBuffer);
         break; 
       case 4:
-        sprintf(outBuffer, ":DL9BDI-2 :UNIT.V,%%,C,C");
+        sprintf(outBuffer, ":%s :UNIT.V,%%,C,C", system.getUserConfig()->telemetry.telemetry_call.c_str());
         //Serial.println("In Unitausgabe");
         //Serial.println(outBuffer);
         break;
       default:
-        //Serial.println("In Defaultzweig");
+        system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(),"Telemetriezähler: %d", _telemetrySequence);
+        //Serial.print("In Defaultzweig ");
         sprintf(outBuffer, "T#%03d,%03.0f,%03.0f,%03.0f,%03.0f", _telemetrySequence, getVoltage(system)*10, dhtobj.readHumidity(),dhtobj.readTemperature(),getTempDS18(system));
         // increment APRS telemetry sequence counter
+        _telemetrySequence++; 
+        //Serial.print("_telemetrySequence: ");
+        //Serial.println(_telemetrySequence);
          
         break;
       
@@ -307,7 +327,7 @@ String getTelemetryData(System &system){
   //sprintf(outBuffer, "U: %3.1f h: %3.1f%%, T1: %3.1fC, T2: %3.1f ",getVoltage(system), dhtobj.readHumidity(),dhtobj.readTemperature(),getTempDS18(system));
   //sprintf(outBuffer, "T#%03d,%03.0f,%03.0f,%03.0f,%03.0f", _telemetrySequence, getVoltage(system), dhtobj.readHumidity(),dhtobj.readTemperature(),getTempDS18(system));
   //tmpOutStr=tmpOutStr+" "+getTempHumid(system)+" "+getTempDS18(system);
-  system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "","Telemetriedaten: %s", outBuffer);
+  system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(),"Telemetriedaten: %s", outBuffer);
   
   return (String) outBuffer;  
 }
@@ -335,7 +355,6 @@ bool BeaconTask::sendBeacon(System &system) {
   if (system.getUserConfig()->aprs_is.active) {
     _beaconMsg->setSource(system.getUserConfig()->callsign);
     _toAprsIs.addElement(_beaconMsg);
-    //Serial.print("toAPRS Message gesetzt");
   }
 
   if (system.getUserConfig()->digi.beacon) {

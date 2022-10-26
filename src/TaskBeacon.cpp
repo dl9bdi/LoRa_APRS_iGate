@@ -168,64 +168,16 @@ float getTempDS18(System &system){
   
   float t;
   sensors.requestTemperatures();
-  t = sensors.getTempC(DS18Address);
-  
-  //sprintf(outBuffer, "T2: %3.1fC ",t);
-  
+  t = sensors.getTempC(DS18Address); 
   return t;  
 }
 
 /*
-  Reads out humidity value fromm a dht22 sensor on io pin
-  configured.
-  
+Read voltage at defined io port between 0 and 3.3 v
+linearize and scale it
 */
-/*
-float getHumid(System &system){
-  //char outBuffer[40]; 
-  //get IO port to read a dht22 from configuration
-  //int dhtPort = system.getUserConfig()->telemetry.dht22_pin;
-  //float h = dhtobj.readHumidity();
-  //float t = dhtobj.readTemperature();
-  
-  //sprintf(outBuffer, "h: %3.1f%%, T1: %3.1fC ",h,t);
-  return dhtobj.readHumidity();;  
-}
-*/
-
-/*
-  Reads out temperature fromm a dht22 sensor on io pin
-  configured.
-  
-*/
-/*
-float getTemp(System &system){
-  char outBuffer[40]; 
-  //get IO port to read a dht22 from configuration
-  //int dhtPort = system.getUserConfig()->telemetry.dht22_pin;
-  //float h = dhtobj.readHumidity();
-  //float t = dhtobj.readTemperature();
-  
-  //sprintf(outBuffer, "h: %3.1f%%, T1: %3.1fC ",h,t);
-  return dhtobj.readTemperature(); 
-}
-*/
-/*
-  Collect and format measurements connected to IO Ports at the
-  local board and format it into a string to be sent out as telemetry data.
-  These can be e.g. direct voltage measurements from 0-3.3V, connected 
-  temperature sensors, etc. 
-*/
-
-
 
 float getVoltage(System &system){
-  //char outBuffer[40]; 
-  //String tmpOutStr="";
-
-  //get IO port to read a direct voltage from configuration
-  //int voltagePort = system.getUserConfig()->telemetry.voltage_pin;
-
   //get voltage scaling faktor. This is used for output formatting and gives the real world voltage value of an IO pin input of 3.3V 
   float voltageScaling = system.getUserConfig()->telemetry.voltage_scaling;
 
@@ -244,11 +196,6 @@ float getVoltage(System &system){
   if (vf<0) {
     vf=0;
   } 
-
-  //format for proper readibility
-  //sprintf(outBuffer, "U: %3.1fV ", vf);
-  //tmpOutStr=(String) outBuffer;
-  //return (String) outBuffer;
   return vf;  
 }  
 
@@ -265,26 +212,13 @@ String BeaconTask::getTelemetryData(System &system){
     _telemetrySequence=0;
   }
   _telemetryScalingSequence++;
-  if (_telemetryScalingSequence>10){
+  if (_telemetryScalingSequence>100){
     _telemetryScalingSequence=1;
   }
-  //_telemetryScalingSequence=5;  //disable unit sending as the packets are incorrect
-
-  /*
-  Serial.print("_telemetryScalingSecuence: " );
-  Serial.println(_telemetryScalingSequence);
-
-  Serial.print("ESP Speicher: " );
-  Serial.println(ESP.getHeapSize());
-  Serial.print("ESP freier Speicher: " );
-  Serial.printlnESP.getHeapSize());
-  */
+  
   system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(), "_telemetryScalingSequence: %d ",_telemetryScalingSequence);
   system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(), "_telemetrySequence: %d ",_telemetrySequence);
-  //system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "", "ESP Heap %d ",ESP.getHeapSize());
-  system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(), "Freier ESP Heap %d ",ESP.getFreeHeap());
-  //system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "", "ESP PSRam %d ",ESP.getPsramSize());
-  //system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "", "Freier ESP Heap %d ",ESP.getFreePsram());
+  system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(), "free ESP Heap %d ",ESP.getFreeHeap());
 
 
   //depending on the configuration of numeric_only different strings for sendig telemetry data will be created. 
@@ -293,41 +227,24 @@ String BeaconTask::getTelemetryData(System &system){
     //every nth packet send telemetry description and scaling
     switch (_telemetryScalingSequence){
       case 2: 
-        sprintf(outBuffer, ":%s :PARAM.SysVolt,Hum,RoomT,PaT", system.getUserConfig()->telemetry.telemetry_call.c_str());
-        //Serial.println("In Parameterausgabe");
+        sprintf(outBuffer, ":%s :PARM.SysVolt,Hum,RoomT,PaT, ", system.getUserConfig()->telemetry.telemetry_call.c_str());
         break;
-      case 3:
-        sprintf(outBuffer, ":%s :EQNS.0,0.1,0,0,1,0,0,1,0,0,1,0", system.getUserConfig()->telemetry.telemetry_call.c_str());
-        //Serial.println("In Unitausgabe");
-        //Serial.println(outBuffer);
-        break; 
       case 4:
+        sprintf(outBuffer, ":%s :EQNS.0,0.1,0,0,1,0,0,1,0,0,1,0", system.getUserConfig()->telemetry.telemetry_call.c_str());
+        break; 
+      case 6:
         sprintf(outBuffer, ":%s :UNIT.V,%%,C,C", system.getUserConfig()->telemetry.telemetry_call.c_str());
-        //Serial.println("In Unitausgabe");
-        //Serial.println(outBuffer);
         break;
       default:
-        system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(),"Telemetriezähler: %d", _telemetrySequence);
-        //Serial.print("In Defaultzweig ");
+        system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(),"telemetry counter: %d", _telemetrySequence);
         sprintf(outBuffer, "T#%03d,%03.0f,%03.0f,%03.0f,%03.0f", _telemetrySequence, getVoltage(system)*10, dhtobj.readHumidity(),dhtobj.readTemperature(),getTempDS18(system));
-        // increment APRS telemetry sequence counter
         _telemetrySequence++; 
-        //Serial.print("_telemetrySequence: ");
-        //Serial.println(_telemetrySequence);
-         
         break;
-      
-         
     }
-    //sprintf(outBuffer, "T#%03d,%03.0f,%03.0f,%03.0f,%03.0f", _telemetrySequence, getVoltage(system)*10, dhtobj.readHumidity(),dhtobj.readTemperature(),getTempDS18(system));   
   } else {
     sprintf(outBuffer, "U: %3.1f h: %3.1f%%, T1: %3.1fC, T2: %3.1f ",getVoltage(system), dhtobj.readHumidity(),dhtobj.readTemperature(),getTempDS18(system));
   }
-  //String tmpOutStr="";
-  //sprintf(outBuffer, "U: %3.1f h: %3.1f%%, T1: %3.1fC, T2: %3.1f ",getVoltage(system), dhtobj.readHumidity(),dhtobj.readTemperature(),getTempDS18(system));
-  //sprintf(outBuffer, "T#%03d,%03.0f,%03.0f,%03.0f,%03.0f", _telemetrySequence, getVoltage(system), dhtobj.readHumidity(),dhtobj.readTemperature(),getTempDS18(system));
-  //tmpOutStr=tmpOutStr+" "+getTempHumid(system)+" "+getTempDS18(system);
-  system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(),"Telemetriedaten: %s", outBuffer);
+   system.getLogger().log(logging::LoggerLevel::LOGGER_LEVEL_INFO, getName(),"telemetry data: %s", outBuffer);
   
   return (String) outBuffer;  
 }
@@ -367,9 +284,12 @@ bool BeaconTask::sendBeacon(System &system) {
     _TeleBeaconMsg->setPath("WIDE1-1");
     _TeleBeaconMsg->setType('>');
 
-
-    //_TeleBeaconMsg->getBody()->setData(String("=") + create_lat_aprs(lat) + "L" + create_long_aprs(lng) + "& "  + getTelemetryData(system));
-    _TeleBeaconMsg->getBody()->setData(getTelemetryData(system));
+    //construct different telemetry data sets depending on configuration of telemetry data format
+    if (system.getUserConfig()->telemetry.numeric_only){ //just send numerical telemetry data
+      _TeleBeaconMsg->getBody()->setData(getTelemetryData(system));
+    } else { //more human readable format of telemetry data
+      _TeleBeaconMsg->getBody()->setData(String("=") + create_lat_aprs(lat) + "L" + create_long_aprs(lng) + "& "  + getTelemetryData(system));
+    }
      _toModem.addElement(_TeleBeaconMsg);
   
   }

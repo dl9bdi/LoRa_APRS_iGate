@@ -1,5 +1,5 @@
 {
-	"callsign": "DL9BDI-3",
+	"callsign": "NOCALL-10",
 	"network": {
 		"DHCP": true,
 		"static": {
@@ -18,16 +18,16 @@
 		"active": true,
 		"AP": [
 			{
-				"SSID": "SpdBt",
-				"password": "DPifRWaBS50i28357B."
+				"SSID": "...",
+				"password": "...."
 			}
 		]
 	},
 	"beacon": {
 		"message": "LoRa iGATE",
 		"position": {
-			"latitude": 53.12623,
-			"longitude": 8.89622
+			"latitude": 3.12623,
+			"longitude": 18.89622
 		},
 		"use_gps": false,
 		"timeout": 10
@@ -55,7 +55,7 @@
 	"telemetry": {
 		"active": true,
 		"voltage_scaling": 17,
-		"telemetry_call": "DL9BDI-2",
+		"telemetry_call": "NOCALL-2",
 		"numeric_only": true
 	},
 	"display": {
